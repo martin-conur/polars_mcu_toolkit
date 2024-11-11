@@ -11,6 +11,7 @@ install-release:
 pre-commit:
 	rustup install nightly
 	rustup default nightly
+	rustup component add rustfmt
 	cargo +nightly fmt --all && cargo clippy --all-features
 	.venv/bin/python -m ruff check . --fix --exit-non-zero-on-fix
 	.venv/bin/python -m ruff format polars_mcu_toolkit tests

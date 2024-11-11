@@ -1,5 +1,5 @@
 [package]
-name = "polars_negsample"
+name = "polars_mcu_toolkit"
 version = "0.1.0"
 edition = "2021"
 

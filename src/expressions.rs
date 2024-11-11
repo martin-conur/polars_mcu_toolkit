@@ -1,4 +1,7 @@
 #![allow(clippy::unused_unit)]
+#![allow(unused_imports)]
+
+use std::hash::Hash;
 use std::ops::{Add, Div, Mul, Sub};
 
 use polars::export::num::{NumCast, Zero};
@@ -15,26 +18,27 @@ use pyo3_polars::export::polars_core::utils::arrow::array::PrimitiveArray;
 use pyo3_polars::export::polars_core::utils::CustomIterTools;
 use serde::Deserialize;
 use rand::seq::SliceRandom;
+use rand::thread_rng;
 
 use std::collections::HashSet;
 
-fn same_output_type(input_fields: &[Field]) -> PolarsResult<Field> {
-    let field = &input_fields[0];
-    Ok(field.clone())
-}
+// fn same_output_type(input_fields: &[Field]) -> PolarsResult<Field> {
+//     let field = &input_fields[0];
+//     Ok(field.clone())
+// }
 
 fn list_idx_dtype(input_fields: &[Field]) -> PolarsResult<Field> {
     let field = Field::new(input_fields[0].name.clone(), DataType::List(Box::new(IDX_DTYPE)));
     Ok(field.clone())
 }
-
-fn neg_sample(inputs: &[Series], _set: &[i32]) -> PolarsResult<Series> {
-    todo!();
-}
-
 #[derive(Deserialize)]
 struct Index{
     val: i64
+}
+
+#[derive(Deserialize)]
+struct Maestra {
+    sample_from: Vec<i64>
 }
 
 #[polars_expr(output_type_func=list_idx_dtype)]
@@ -44,7 +48,7 @@ fn non_val_indices(inputs: &[Series], kwargs: Index) -> PolarsResult<Series> {
         ca.dtype() == &DataType::List(Box::new(DataType::Int64)),
         ComputeError: "Expexted 'List(Int64)' got: {}", ca.dtype()
     );
-
+    
     let out: ListChunked = ca.apply_amortized(|s|{
         let s: &Series = s.as_ref();
         let ca = s.i64().unwrap();
@@ -58,3 +62,38 @@ fn non_val_indices(inputs: &[Series], kwargs: Index) -> PolarsResult<Series> {
     });
     Ok(out.into_series())
 }
+
+#[polars_expr(output_type_func=list_idx_dtype)]
+fn neg_sample(inputs: &[Series], kwargs: Maestra) -> PolarsResult<Series> {
+    let ca = inputs[0].list()?;
+    polars_ensure!(
+        ca.dtype() == &DataType::List(Box::new(DataType::Int64)),
+        ComputeError: "Expexted 'List(Int64)' got: {}", ca.dtype()
+    );
+
+    
+
+    let out: ListChunked = ca.apply_amortized(|s|{
+        let s: &Series = s.as_ref();
+        let ca = s.i64().unwrap();
+        
+        let mut rng = thread_rng();
+
+        let subsampled_set: Vec<i64> = kwargs.sample_from
+            .choose_multiple(&mut rng, ca.len() * 2)
+            .cloned()
+            .collect();
+        let ca_set: HashSet<_> = ca.to_vec().into_iter().collect();
+
+        let out: Vec<_> = subsampled_set
+            .into_iter()
+            .filter(|x| !ca_set.contains(&Some(*x)))
+            .take(ca.len()) // we only need the len of the original list
+            .collect();
+
+        Series::from_vec("neg_sample".into(), out)
+    });
+    Ok(out.into_series())
+}
+ 
+

@@ -22,3 +22,7 @@ run: install
 
 run-release: install-release
 	source .venv/bin/activate && python run.py
+
+.venv:
+    python -m venv .venv
+    .venv/bin/pip install -r requirements.txt

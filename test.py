@@ -26,7 +26,14 @@ print(f"df generation time: {elapsed_mid}")
 
 
 print(df)
-print(df.with_columns(indices=mcu.neg_sample('dense', sample_from=maestra)))
+print(df
+      .with_columns(
+          pl.col("dense").cast(pl.List(pl.Int32))
+      )
+      .with_columns(
+        neg_sampled=mcu.neg_sample('dense', sample_from=maestra, neg_ratio=2)
+    )
+)
 
 end_time = time.perf_counter()
 

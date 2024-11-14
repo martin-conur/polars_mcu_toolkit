@@ -12,13 +12,28 @@ if TYPE_CHECKING:
 LIB = Path(__file__).parent
 
 
-def neg_sample(expr: IntoExprColumn, sample_from: list[int]) -> pl.Expr:
+def neg_sample(expr: IntoExprColumn,
+               sample_from: list[int],
+               neg_ratio: int = 1) -> pl.Expr:
+    """
+    Given a Series of type List(Int64), sample the negative cases (values that 
+    not appears on the List Series) from a list that holds all the values.
+
+    Args:
+        sample_from: List with all the values that the series could contain.
+        neg_ratio: negative samples ratio with respect to the positive cases. 
+        By default 1, which means that returns the same number of positive 
+        samples. 2 returns twice as many positive samples, and so on.
+    
+    Returns:
+        A List(i64) series with negative samples.ß
+    """
     return register_plugin_function(
         args=[expr],
         plugin_path=LIB,
         function_name="neg_sample",
         is_elementwise=True,
-        kwargs={"sample_from": sample_from},
+        kwargs={"sample_from": sample_from, "neg_ratio": neg_ratio},
     )
 
 
